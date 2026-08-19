@@ -45,3 +45,21 @@
     |1|16 bits| Lenght| the length of the payload|
     |3| 8 bit| Frame Type | Transmits the Requrest - 0x10|
     |4| 8 bit| Frame ID| Identifies the data frame for the host and then after that tells if the overall sequence is going to have a response or not, is set to 0 if the device will not immpity any respone|
+    |5| 64 bits | 64 bit destination address | set to the 64 bit destination device set to 0x000000000000FFFF for brodcasting |
+    | 13 | 16 bits | reserved | unused typically set to 0xFFFE | 
+    | 15 | 8 bits | Brodcasting radius | the max radius for for brodactsing transmission can traverse | 
+    | 16 | 8 bits | transmit options | See the transmit bit field, if set 9 the vlaue of TO specifies the transmit options | 
+    | 17 - n | variable | payload | the payload data to be transmitted |
+    | EOF | 8 bits | checksum | checksum |
+
+    Transmit option bit field 
+    digiMesh 
+    | bit | meaning | description |
+    |-----|---------|-------------|
+    |0  | Deiable ACK [0x01] | Disable acknowledgments on all unicasts | 
+    | 1 | disable route discoveries [0x02] | Disable the route discovery on the digiMEss unicasts | 
+    | 2  | Unicast NACK [0x04] | Enable unicast NACKs on all unicasts |
+    | 3  | Unicast trace route [0x08] | Enable unicast trace route on all unicasts |
+    | 4  | Secure session Encription [0x10] | Encrypts the payload for transmission across a secure session. WIll reduce teh max payload size by 4 bytes  |
+    | 5  | Reserved  | set this bit to 0 |
+    | 6,7| Delivery Method | b`00 - inv, b`01 - point-multipoint, b`10 - directed brodcast, b`11 -  digimesh|
