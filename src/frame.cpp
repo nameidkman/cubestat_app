@@ -1,4 +1,5 @@
 #include "frame.hpp"
+#include <cstddef>
 #include <cstdint>
 
 namespace FlightSoftware{
@@ -71,5 +72,65 @@ std::vector<uint8_t> build_transmit_request_frame(
         return frame;
 
 }
+parese_result pareser_recive_paacket_frame(const std::vector<uint8_t>& frame_bytes){
+    parese_result result;
+    constexpr size_t min_frame_size = 16;
+    if(frame_bytes.size() < min_frame_size){
+        result.error = PareError::frame_too_short;
+        return result;
+    }
+    if(frame_bytes[0] != frame_delimiter){
+        result.error = PareError::missing_starting_delimiter;
+        return result;
+    }
+    const uint16_t declared_length = read_u16(frame_bytes, 1);
+    const size_t total_requried =  3 + static_cast<size_t>(declared_length) + 1;
+    if(frame_bytes.size() < total_requried){
+        result.error = PareError::incomplete_frame;
+        return result;
+    }
 
+    const size_t frame_data_start = 3;
+    const size_t frame_data_end = frame_data_start + declared_length;
+    const size_t checksum_index = frame_data_end;
+
+    // Frame data must at least contain: frame_type(1) + src64(8) +
+    // src16(2) + options(1) = 12 bytes.
+    constexpr size_t min_frame_data_size = 12;
+    if(declared_length < min_frame_size){
+        result.error = PareError::payload_length_mismactch;
+        return result;
+    }
+    const uint8_t computed_checksum = static_cast<uint8_t>(
+        0xFF - sum_bytes(frame_bytes, frame_data_end, frame_data_end)
+    );
+    const uint8_t recieved_checksum = frame_bytes[checksum_index];
+    if(recieved_checksum != computed_checksum){
+        result.error = PareError::invalid_check_sum;
+        return result;
+    }
+
+   const uint8_t frame_type = frame_bytes[frame_data_start];
+   if(frame_type != frame_type_recive){
+       result.error = PareError::unexpected_frame_type;
+       return result;
+   }
+
+   recive_packet packet;
+   size_t offset = frame_data_start + 1;
+   packet.source_address_64 = read_u64(frame_bytes, offset);
+   offset += 8;
+   packet.source_address_16 = read_u16(frame_bytes, offset);
+   offset += 2;
+   packet.recive_option = frame_bytes[offset];
+   offset += 1;
+   packet.payload.assign(frame_bytes.begin() + static_cast<long>(offset),
+                         frame_bytes.begin() + static_cast<long>(frame_data_end));
+
+   result.error = PareError::none;
+   result.packet = std::move(packet);
+   return result;
+
+
+}
 }
